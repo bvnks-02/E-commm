@@ -94,14 +94,16 @@ export default function OrderModal({ product, isOpen, onClose }: OrderModalProps
       return
     }
 
-    addOrder({
+    const orderData = {
       productId: product.id,
       customerName: formData.customerName,
       customerPhone: formData.customerPhone,
       customerAddress: formData.customerAddress,
       customerRegion: formData.customerRegion,
       status: "pending",
-    })
+    }
+
+    await addOrder(orderData)
 
     setIsSubmitted(true)
   }

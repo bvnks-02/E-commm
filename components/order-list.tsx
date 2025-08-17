@@ -12,8 +12,15 @@ export default function OrderList() {
   const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
-    setOrders(getOrders())
-    setProducts(getProducts())
+    const loadData = async () => {
+      const [ordersData, productsData] = await Promise.all([
+        getOrders(),
+        getProducts()
+      ])
+      setOrders(ordersData)
+      setProducts(productsData)
+    }
+    loadData()
   }, [])
 
   const getProductById = (productId: string): Product | undefined => {
@@ -21,14 +28,24 @@ export default function OrderList() {
   }
 
   const handleConfirmOrder = (orderId: string) => {
-    updateOrderStatus(orderId, "confirmed")
-    setOrders(orders.map((order) => (order.id === orderId ? { ...order, status: "confirmed" } : order)))
+    const updateStatus = async () => {
+      const success = await updateOrderStatus(orderId, "confirmed")
+      if (success) {
+        setOrders(orders.map((order) => (order.id === orderId ? { ...order, status: "confirmed" } : order)))
+      }
+    }
+    updateStatus()
   }
 
   const handleDeleteOrder = (orderId: string) => {
     if (confirm("Are you sure you want to delete this order?")) {
-      deleteOrder(orderId)
-      setOrders(orders.filter((order) => order.id !== orderId))
+      const deleteOrderAsync = async () => {
+        const success = await deleteOrder(orderId)
+        if (success) {
+          setOrders(orders.filter((order) => order.id !== orderId))
+        }
+      }
+      deleteOrderAsync()
     }
   }
 
@@ -82,7 +99,7 @@ export default function OrderList() {
               <h4 className="text-lg font-medium mb-4 text-yellow-700">Pending Orders ({pendingOrders.length})</h4>
               <div className="space-y-4">
                 {pendingOrders.map((order) => {
-                  const product = getProductById(order.productId)
+                  const product = getProductById(order.productId || order.product_id || '')
                   return (
                     <Card key={order.id} className="border-yellow-200">
                       <CardHeader className="pb-3">
@@ -174,7 +191,7 @@ export default function OrderList() {
               <h4 className="text-lg font-medium mb-4 text-green-700">Confirmed Orders ({confirmedOrders.length})</h4>
               <div className="space-y-4">
                 {confirmedOrders.map((order) => {
-                  const product = getProductById(order.productId)
+                  const product = getProductById(order.productId || order.product_id || '')
                   return (
                     <Card key={order.id} className="border-green-200 bg-green-50/50">
                       <CardHeader className="pb-3">
