@@ -21,14 +21,14 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     name: product?.name || "",
     description: product?.description || "",
     price: product?.price || 0,
-    image_url: product?.image_url || "",
+    imageUrl: product?.imageUrl || "",
   })
 
-  const [imagePreview, setImagePreview] = useState<string>(product?.image_url || "")
+  const [imagePreview, setImagePreview] = useState<string>(product?.imageUrl || "")
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -45,25 +45,30 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     }
 
     setIsUploading(true)
-    const reader = new FileReader()
 
-    reader.onload = (event) => {
-      const result = event.target?.result as string
-      setFormData({ ...formData, image_url: result })
-      setImagePreview(result)
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const base64String = e.target?.result as string
+        setFormData((prev) => ({ ...prev, imageUrl: base64String }))
+        setImagePreview(base64String)
+        setIsUploading(false)
+      }
+      reader.onerror = () => {
+        alert("Error reading file. Please try again.")
+        setIsUploading(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error("Upload error:", error)
+      alert("Error uploading image. Please try again.")
       setIsUploading(false)
     }
-
-    reader.onerror = () => {
-      alert("Error reading file")
-      setIsUploading(false)
-    }
-
-    reader.readAsDataURL(file)
   }
 
   const clearImage = () => {
-    setFormData({ ...formData, image_url: "" })
+    setFormData({ ...formData, imageUrl: "" })
     setImagePreview("")
     if (fileInputRef.current) {
       fileInputRef.current.value = ""

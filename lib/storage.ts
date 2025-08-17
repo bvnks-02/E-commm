@@ -59,6 +59,15 @@ export const updateProduct = (id: string, updates: Partial<Product>): boolean =>
 
 export const deleteProduct = (id: string): boolean => {
   const products = getProducts()
+  const productToDelete = products.find((p) => p.id === id)
+  if (productToDelete?.imageUrl && productToDelete.imageUrl.startsWith("/images/")) {
+    fetch("/api/delete-image", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagePath: productToDelete.imageUrl }),
+    }).catch(console.error)
+  }
+
   const filteredProducts = products.filter((p) => p.id !== id)
   saveProducts(filteredProducts)
   return true
