@@ -152,11 +152,11 @@ export default function OrderList() {
                             <h6 className="font-medium text-sm">Customer Information</h6>
                             <div className="space-y-1 text-sm">
                               <p>
-                                <strong>Name:</strong> {order.customerName}
+                                <strong>Name:</strong> {order.customerName || order.customer_name}
                               </p>
                               <div className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                <span>{order.customerPhone}</span>
+                                <span>{order.customerPhone || order.customer_phone}</span>
                               </div>
                             </div>
                           </div>
@@ -167,10 +167,10 @@ export default function OrderList() {
                                 <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                 <div>
                                   <p>
-                                    <strong>Region:</strong> {order.customerRegion}
+                                    <strong>Region:</strong> {order.customerRegion || order.customer_region}
                                   </p>
                                   <p>
-                                    <strong>Address:</strong> {order.customerAddress}
+                                    <strong>Address:</strong> {order.customerAddress || order.customer_address}
                                   </p>
                                 </div>
                               </div>
@@ -234,11 +234,11 @@ export default function OrderList() {
                             <h6 className="font-medium text-sm">Customer Information</h6>
                             <div className="space-y-1 text-sm">
                               <p>
-                                <strong>Name:</strong> {order.customerName}
+                                <strong>Name:</strong> {order.customerName || order.customer_name}
                               </p>
                               <div className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                <span>{order.customerPhone}</span>
+                                <span>{order.customerPhone || order.customer_phone}</span>
                               </div>
                             </div>
                           </div>
@@ -249,10 +249,10 @@ export default function OrderList() {
                                 <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                 <div>
                                   <p>
-                                    <strong>Region:</strong> {order.customerRegion}
+                                    <strong>Region:</strong> {order.customerRegion || order.customer_region}
                                   </p>
                                   <p>
-                                    <strong>Address:</strong> {order.customerAddress}
+                                    <strong>Address:</strong> {order.customerAddress || order.customer_address}
                                   </p>
                                 </div>
                               </div>
