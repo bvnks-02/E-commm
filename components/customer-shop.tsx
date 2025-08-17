@@ -17,9 +17,9 @@ export default function CustomerShop() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadProducts = () => {
+    const loadProducts = async () => {
       setLoading(true)
-      const loadedProducts = getProducts()
+      const loadedProducts = await getProducts()
       setProducts(loadedProducts)
       setFilteredProducts(loadedProducts)
       setLoading(false)
