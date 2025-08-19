@@ -23,7 +23,8 @@ export default function CustomerShop() {
       try {
         setLoading(true)
         const loadedProducts = await getProducts()
-        if (loadedProducts.length === 0) {
+        
+        if (!loadedProducts || loadedProducts.length === 0) {
           setError("No products available. Please check back later.")
         } else {
           setProducts(loadedProducts)
@@ -68,6 +69,13 @@ export default function CustomerShop() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">{error}</p>
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline" 
+          className="mt-4"
+        >
+          Refresh
+        </Button>
       </div>
     )
   }
