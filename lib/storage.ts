@@ -1,183 +1,144 @@
+// lib/storage.ts
 import { supabase, safeSupabase, isSupabaseConfigured } from './supabase/client'
 
-// Simple in-memory cache with TTL
-const cache = new Map<string, { data: any, timestamp: number }>()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+export const getProducts = async (): Promise<Product[]> => {
+  if (!isSupabaseConfigured) return []
 
-// Cache management functions
-const getCache = <T>(key: string): T | null => {
-  const entry = cache.get(key)
-  if (!entry) return null
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
-    cache.delete(key)
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Failed to fetch products:', error)
+    return []
+  }
+}
+
+export const getOrders = async (): Promise<Order[]> => {
+  if (!isSupabaseConfigured) return []
+
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Failed to fetch orders:', error)
+    return []
+  }
+}
+
+export const addOrder = async (orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> => {
+  if (!isSupabaseConfigured) return null
+
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert({
+        ...orderData,
+        status: 'pending'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Failed to create order:', error)
     return null
   }
-  return entry.data
 }
 
-const setCache = (key: string, data: any) => {
-  cache.set(key, { data, timestamp: Date.now() })
-}
+export const updateOrderStatus = async (orderId: string, status: Order['status']): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false
 
-const clearRelatedCache = (prefix: string) => {
-  Array.from(cache.keys())
-    .filter(key => key.startsWith(prefix))
-    .forEach(key => cache.delete(key))
-}
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId)
 
-// Product operations
-export const getProducts = async (page = 1, limit = 10): Promise<Product[]> => {
-  const cacheKey = `products:${page}:${limit}`
-  const cached = getCache<Product[]>(cacheKey)
-  if (cached) return cached
-
-  if (isSupabaseConfigured) {
-    try {
-      const data = await safeSupabase.query<Product[]>(
-        supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range((page - 1) * limit, page * limit - 1)
-      )
-      if (data) {
-        setCache(cacheKey, data)
-        return data
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error)
-    }
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Failed to update order:', error)
+    return false
   }
-
-  return []
 }
 
-export const getProduct = async (id: string): Promise<Product | null> => {
-  const cacheKey = `product:${id}`
-  const cached = getCache<Product>(cacheKey)
-  if (cached) return cached
+export const deleteOrder = async (orderId: string): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false
 
-  if (isSupabaseConfigured) {
-    try {
-      const data = await safeSupabase.query<Product>(
-        supabase
-          .from('products')
-          .select('*')
-          .eq('id', id)
-          .single()
-      )
-      if (data) {
-        setCache(cacheKey, data)
-        return data
-      }
-    } catch (error) {
-      console.error(`Failed to fetch product ${id}:`, error)
-    }
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Failed to delete order:', error)
+    return false
   }
-
-  return null
 }
 
-export const createProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product | null> => {
-  if (isSupabaseConfigured) {
-    try {
-      const data = await safeSupabase.mutate<Product>(
-        supabase
-          .from('products')
-          .insert(product)
-          .select()
-          .single()
-      )
-      if (data) {
-        clearRelatedCache('products:')
-        return data
-      }
-    } catch (error) {
-      console.error('Failed to create product:', error)
-    }
+// Add similar functions for product operations
+export const addProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product | null> => {
+  if (!isSupabaseConfigured) return null
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(productData)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Failed to add product:', error)
+    return null
   }
-  return null
 }
 
-// Similar optimized implementations for:
-// updateProduct, deleteProduct, adjustStockQuantity
+export const updateProduct = async (productId: string, productData: Partial<Product>): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false
 
-// Order operations
-export const getOrders = async (page = 1, limit = 10, status?: string): Promise<Order[]> => {
-  const cacheKey = `orders:${page}:${limit}:${status || 'all'}`
-  const cached = getCache<Order[]>(cacheKey)
-  if (cached) return cached
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update(productData)
+      .eq('id', productId)
 
-  if (isSupabaseConfigured) {
-    try {
-      let query = supabase
-        .from('orders')
-        .select('*, products(name, price)')
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1)
-
-      if (status) {
-        query = query.eq('status', status)
-      }
-
-      const data = await safeSupabase.query<Order[]>(query)
-      if (data) {
-        // Enrich orders with product info
-        const enriched = data.map(order => ({
-          ...order,
-          product_name: order.products?.name,
-          product_price: order.products?.price
-        }))
-        setCache(cacheKey, enriched)
-        return enriched
-      }
-    } catch (error) {
-      console.error('Failed to fetch orders:', error)
-    }
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Failed to update product:', error)
+    return false
   }
-
-  return []
 }
 
-export const createOrder = async (order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> => {
-  if (isSupabaseConfigured) {
-    try {
-      // First verify product exists and has stock
-      const product = await getProduct(order.product_id)
-      if (!product || product.stock_quantity <= 0) {
-        throw new Error('Product not available')
-      }
+export const deleteProduct = async (productId: string): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false
 
-      const data = await safeSupabase.mutate<Order>(
-        supabase
-          .from('orders')
-          .insert({
-            ...order,
-            status: 'pending'
-          })
-          .select()
-          .single()
-      )
+  try {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId)
 
-      if (data) {
-        // Update product stock
-        await safeSupabase.mutate(
-          supabase
-            .from('products')
-            .update({ stock_quantity: product.stock_quantity - 1 })
-            .eq('id', order.product_id)
-        )
-
-        clearRelatedCache('orders:')
-        clearRelatedCache(`product:${order.product_id}`)
-        return data
-      }
-    } catch (error) {
-      console.error('Failed to create order:', error)
-    }
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Failed to delete product:', error)
+    return false
   }
-  return null
 }
-
-// Similar optimized implementations for:
-// updateOrderStatus, cancelOrder, getOrder
