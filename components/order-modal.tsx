@@ -46,6 +46,12 @@ export default function OrderModal({ product, isOpen, onClose }: OrderModalProps
     e.preventDefault()
     if (!product) return
     
+    // Validate form
+    if (!formData.customerName || !formData.customerPhone || !formData.customerAddress || !formData.customerRegion) {
+      setError("Please fill in all required fields")
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
 
