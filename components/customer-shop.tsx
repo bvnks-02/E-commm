@@ -1,3 +1,4 @@
+// components/customer-shop.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -15,32 +16,39 @@ export default function CustomerShop() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadProducts = async () => {
-      setLoading(true)
-      const loadedProducts = await getProducts()
-      setProducts(loadedProducts)
-      setFilteredProducts(loadedProducts)
-      setLoading(false)
+      try {
+        setLoading(true)
+        const loadedProducts = await getProducts()
+        if (loadedProducts.length === 0) {
+          setError("No products available. Please check back later.")
+        } else {
+          setProducts(loadedProducts)
+          setFilteredProducts(loadedProducts)
+          setError(null)
+        }
+      } catch (err) {
+        console.error("Error loading products:", err)
+        setError("Failed to load products. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
     }
+    
     loadProducts()
   }, [])
 
   useEffect(() => {
-    let filtered = products
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
+    const filtered = products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     setFilteredProducts(filtered)
-  }, [products, searchTerm])
+  }, [searchTerm, products])
 
   const handleOrder = (product: Product) => {
     setSelectedProduct(product)
@@ -56,9 +64,16 @@ export default function CustomerShop() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">{error}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="text-center">
         <h2 className="text-3xl font-bold text-primary mb-2">Welcome to HealthTea Store</h2>
         <p className="text-muted-foreground">
@@ -66,7 +81,6 @@ export default function CustomerShop() {
         </p>
       </div>
 
-      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -79,37 +93,39 @@ export default function CustomerShop() {
         </div>
       </div>
 
-      {/* Products Grid */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">
-            {products.length === 0
-              ? "No products available yet. Please check back later!"
-              : "No products found matching your search criteria."}
+            {searchTerm ? "No products found matching your search criteria." : "No products available yet."}
           </p>
-          {searchTerm ? (
+          {searchTerm && (
             <Button variant="outline" onClick={() => setSearchTerm("")} className="mt-4">
               Clear Search
             </Button>
-          ) : null}
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onOrder={handleOrder} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                onOrder={handleOrder} 
+              />
+            ))}
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Showing {filteredProducts.length} of {products.length} products
+          </div>
+        </>
       )}
 
-      {/* Results Count */}
-      {filteredProducts.length > 0 && (
-        <div className="text-center text-sm text-muted-foreground">
-          Showing {filteredProducts.length} of {products.length} products
-        </div>
-      )}
-
-      {/* Order Modal */}
-      <OrderModal product={selectedProduct} isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} />
+      <OrderModal 
+        product={selectedProduct} 
+        isOpen={isOrderModalOpen} 
+        onClose={() => setIsOrderModalOpen(false)} 
+      />
     </div>
   )
 }
