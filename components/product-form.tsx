@@ -1,6 +1,6 @@
+// components/product-form.tsx
 "use client"
 
-import type React from "react"
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,10 +21,11 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     name: product?.name || "",
     description: product?.description || "",
     price: product?.price || 0,
-    imageUrl: product?.imageUrl || "",
+    image_url: product?.image_url || "",
+    category: product?.category || "supplement"
   })
 
-  const [imagePreview, setImagePreview] = useState<string>(product?.imageUrl || "")
+  const [imagePreview, setImagePreview] = useState<string>(product?.image_url || "")
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -51,7 +52,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
       const reader = new FileReader()
       reader.onload = (e) => {
         const base64String = e.target?.result as string
-        setFormData((prev) => ({ ...prev, imageUrl: base64String }))
+        setFormData(prev => ({ ...prev, image_url: base64String }))
         setImagePreview(base64String)
         setIsUploading(false)
       }
@@ -68,7 +69,7 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   }
 
   const clearImage = () => {
-    setFormData({ ...formData, imageUrl: "" })
+    setFormData({ ...formData, image_url: "" })
     setImagePreview("")
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -132,6 +133,21 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="category">Category *</Label>
+            <select
+              id="category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              required
+            >
+              <option value="supplement">Health Supplement</option>
+              <option value="herbal">Herbal Product</option>
+              <option value="tea">Chinese Tea</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <Label>Product Image</Label>
             <div className="space-y-3">
               {/* File Upload Button */}
@@ -162,13 +178,19 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
               </div>
 
               {/* Hidden File Input */}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload} 
+                className="hidden" 
+              />
 
               {/* Image Preview */}
               {imagePreview ? (
                 <div className="relative w-full max-w-xs mx-auto sm:mx-0">
                   <img
-                    src={imagePreview || "/placeholder.svg"}
+                    src={imagePreview}
                     alt="Product preview"
                     className="w-full h-32 sm:h-40 object-cover rounded-lg border"
                   />
