@@ -1,3 +1,4 @@
+// components/product-list.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -12,55 +13,75 @@ export default function ProductList() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts()
   }, [])
 
   const loadProducts = async () => {
-    setLoading(true)
-    const fetchedProducts = await getProducts()
-    setProducts(fetchedProducts)
-    setLoading(false)
+    try {
+      setLoading(true)
+      const fetchedProducts = await getProducts()
+      if (fetchedProducts.length === 0) {
+        setError("No products found. Add your first product to get started.")
+      } else {
+        setProducts(fetchedProducts)
+        setError(null)
+      }
+    } catch (err) {
+      console.error("Error loading products:", err)
+      setError("Failed to load products. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAddProduct = async (productData: Omit<Product, "id" | "created_at" | "updated_at">) => {
-    setActionLoading("add")
-    const newProduct = await addProduct(productData)
-    if (newProduct) {
-      setProducts([newProduct, ...products])
-      setShowAddForm(false)
-    } else {
-      alert("Failed to add product. Please try again.")
+    try {
+      const newProduct = await addProduct(productData)
+      if (newProduct) {
+        setProducts([newProduct, ...products])
+        setShowAddForm(false)
+      } else {
+        throw new Error("Failed to add product")
+      }
+    } catch (err) {
+      console.error("Error adding product:", err)
+      setError("Failed to add product. Please try again.")
     }
-    setActionLoading(null)
   }
 
   const handleUpdateProduct = async (productData: Omit<Product, "id" | "created_at" | "updated_at">) => {
-    if (editingProduct) {
-      setActionLoading("update")
+    if (!editingProduct) return
+    
+    try {
       const success = await updateProduct(editingProduct.id, productData)
       if (success) {
         setProducts(products.map((p) => (p.id === editingProduct.id ? { ...p, ...productData } : p)))
         setEditingProduct(null)
       } else {
-        alert("Failed to update product. Please try again.")
+        throw new Error("Failed to update product")
       }
-      setActionLoading(null)
+    } catch (err) {
+      console.error("Error updating product:", err)
+      setError("Failed to update product. Please try again.")
     }
   }
 
   const handleDeleteProduct = async (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      setActionLoading(id)
+    if (!confirm("Are you sure you want to delete this product?")) return
+    
+    try {
       const success = await deleteProduct(id)
       if (success) {
         setProducts(products.filter((p) => p.id !== id))
       } else {
-        alert("Failed to delete product. Please try again.")
+        throw new Error("Failed to delete product")
       }
-      setActionLoading(null)
+    } catch (err) {
+      console.error("Error deleting product:", err)
+      setError("Failed to delete product. Please try again.")
     }
   }
 
@@ -70,7 +91,11 @@ export default function ProductList() {
 
   if (editingProduct) {
     return (
-      <ProductForm product={editingProduct} onSubmit={handleUpdateProduct} onCancel={() => setEditingProduct(null)} />
+      <ProductForm 
+        product={editingProduct} 
+        onSubmit={handleUpdateProduct} 
+        onCancel={() => setEditingProduct(null)} 
+      />
     )
   }
 
@@ -83,16 +108,27 @@ export default function ProductList() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">{error}</p>
+        <Button 
+          onClick={() => loadProducts()} 
+          className="mt-4"
+          variant="outline"
+        >
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">Product Management</h3>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2"
-          disabled={actionLoading === "add"}
-        >
-          {actionLoading === "add" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
           Add Product
         </Button>
       </div>
@@ -111,7 +147,7 @@ export default function ProductList() {
                 <div className="flex gap-4">
                   {product.image_url && (
                     <img
-                      src={product.image_url || "/placeholder.svg"}
+                      src={product.image_url}
                       alt={product.name}
                       className="w-20 h-20 object-cover rounded-md"
                     />
@@ -120,35 +156,25 @@ export default function ProductList() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-semibold">{product.name}</h4>
+                        <p className="text-sm text-muted-foreground">{product.description}</p>
                       </div>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setEditingProduct(product)}
-                          disabled={actionLoading === "update"}
                         >
-                          {actionLoading === "update" ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Edit className="w-4 h-4" />
-                          )}
+                          <Edit className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteProduct(product.id)}
-                          disabled={actionLoading === product.id}
                         >
-                          {actionLoading === product.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{product.description}</p>
                     <p className="font-semibold text-primary">{product.price.toFixed(2)} DZD</p>
                   </div>
                 </div>
